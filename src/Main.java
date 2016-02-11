@@ -43,6 +43,9 @@ public class Main {
             }
         }
 
+        addLoadCommand(drones.get(0), warehouses.get(0), 163, 1);
+        addDeliverCommand(drones.get(0), orders.get(1), 163, 1);
+
         writeFile();
     }
 
@@ -73,7 +76,7 @@ public class Main {
             warehouses = new ArrayList<>();
             for (int i = 0; i < warehouseCount; i++) {
                 ints = br.readLine().split(" ");
-                WareHouse w = new WareHouse();
+                WareHouse w = new WareHouse(i);
                 w.x = Integer.parseInt(ints[0]);
                 w.y = Integer.parseInt(ints[1]);
 
@@ -90,7 +93,7 @@ public class Main {
 
             orders = new ArrayList<>();
             for (int i = 0; i < orderCount; i++) {
-                Order order = new Order();
+                Order order = new Order(i);
                 ints = br.readLine().split(" ");
                 order.x = Integer.parseInt(ints[0]);
                 order.y = Integer.parseInt(ints[1]);
@@ -106,7 +109,7 @@ public class Main {
             }
 
             for (int i = 0; i < dronesCount; i++) {
-                drones.add(new Drone(warehouses.get(0).x, warehouses.get(0).y));
+                drones.add(new Drone(warehouses.get(0).x, warehouses.get(0).y, i));
             }
 
             while ((line = br.readLine()) != null) {
@@ -115,6 +118,34 @@ public class Main {
         } catch (IOException e) {
             System.out.println("error reading file " + e.getMessage());
         }
+    }
+
+    private static void addLoadCommand(Drone drone, WareHouse wareHouse, int productType, int productNumber) {
+        StringBuilder stringBuilder = new StringBuilder(5);
+        stringBuilder.append(drone.id);
+        stringBuilder.append(' ');
+        stringBuilder.append('L');
+        stringBuilder.append(' ');
+        stringBuilder.append(wareHouse.id);
+        stringBuilder.append(' ');
+        stringBuilder.append(productType);
+        stringBuilder.append(' ');
+        stringBuilder.append(productNumber);
+        commands.add(stringBuilder.toString());
+    }
+
+    private static void addDeliverCommand(Drone drone, Order order, int productType, int productNumber) {
+        StringBuilder stringBuilder = new StringBuilder(5);
+        stringBuilder.append(drone.id);
+        stringBuilder.append(' ');
+        stringBuilder.append('D');
+        stringBuilder.append(' ');
+        stringBuilder.append(order.id);
+        stringBuilder.append(' ');
+        stringBuilder.append(productType);
+        stringBuilder.append(' ');
+        stringBuilder.append(productNumber);
+        commands.add(stringBuilder.toString());
     }
 
     private static void writeFile() {
@@ -146,20 +177,31 @@ public class Main {
     private static class Order {
         List<Product> products = new ArrayList<>();
         int x, y;
+        public int id;
+
+        public Order(int id) {
+            this.id = id;
+        }
     }
 
     private static class WareHouse {
         List<Product> products = new ArrayList<>();
         int x, y;
+        public int id;
+
+        public WareHouse(int id) {
+            this.id = id;
+        }
     }
 
     private static class Drone {
         List<Product> products = new ArrayList<>();
-        int x, y, busy;
+        int x, y, busy, id;
 
-        public Drone(int x, int y) {
+        public Drone(int x, int y, int id) {
             this.x = x;
             this.y = y;
+            this.id = id;
         }
     }
 
