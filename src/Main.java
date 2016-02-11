@@ -22,6 +22,7 @@ public class Main {
     private static int orderCount;
     private static ArrayList<Order> orders;
     private static ArrayList<Drone> drones = new ArrayList<>();
+    private static ArrayList<String> commands = new ArrayList<>();
 
     public static void main(String[] args) {
         readFile();
@@ -102,7 +103,12 @@ public class Main {
     private static void writeFile() {
         try {
             PrintWriter writer = new PrintWriter(FILE_OUT);
-            writer.println("lol");
+            writer.println(commands.size());
+
+            for (String command : commands) {
+                writer.println(command);
+            }
+
             writer.close();
         } catch (IOException e) {
             System.out.println("error writing file " + e.getMessage());
