@@ -4,7 +4,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 
 import static java.lang.Math.*;
 
@@ -36,26 +42,129 @@ public class Main {
     private static ArrayList<String> commands = new ArrayList<>();
 
     public static void main(String[] args) {
-        readFile(MOTHER_OF_ALL_WAREHOUSES_IN);
+        readFile(BUSY_DAY_IN);
+
+        for (int i = 0; i < warehouseCount; i++) {
+            final WareHouse wareHouse = warehouses.get(i);
+            List<Order> ordersOrderedByDistance = wareHouse.ordersOrderedByDistance;
+            ordersOrderedByDistance.addAll(orders);
+            Collections.sort(ordersOrderedByDistance, new Comparator<Order>() {
+                @Override
+                public int compare(Order o1, Order o2) {
+                    int d1 = distanceBetween(wareHouse.x, wareHouse.y, o1.x, o1.y);
+                    int d2 = distanceBetween(wareHouse.x, wareHouse.y, o2.x, o2.y);
+                    return d1 - d2;
+                }
+            });
+        }
 
         for (int i = 0; i < turns; i++) {
             // One tick
+            System.out.println("tick " + i);
             for (int d = 0; d < dronesCount; d++) {
                 // drones number d
-                Drone drone = drones.get(d);
+                final Drone drone = drones.get(d);
                 if (drone.busy > 0) {
                     // This turn, this drone is busy~
                     drone.busy--;
                 } else {
-                    // TODO find something for the drone.
+                    // Sort the warehouse by distance.
+                    ArrayList<WareHouse> wareHouses = new ArrayList<>(warehouses);
+                    Collections.sort(wareHouses, new Comparator<WareHouse>() {
+                        @Override
+                        public int compare(WareHouse o1, WareHouse o2) {
+                            int d1 = distanceBetween(drone.x, drone.y, o1.x, o1.y);
+                            int d2 = distanceBetween(drone.x, drone.y, o2.x, o2.y);
+                            return d1 - d2;
+                        }
+                    });
+
+                    for (WareHouse wareHouse : wareHouses) {
+                        final Delivery delivery = closetDelivery(wareHouse);
+                        if (delivery != null) {
+                            // hurray we got our job !
+                            int distanceFromWareHouse = distanceBetween(drone.x, drone.y, wareHouse.x, wareHouse.y);
+                            Map<Integer, Integer> reduction = reduce(delivery.products);
+                            for (Map.Entry<Integer, Integer> entry : reduction.entrySet()) {
+                                addLoadCommand(drone, delivery.from, entry.getKey(), entry.getValue());
+                            }
+
+                            for (Map.Entry<Integer, Integer> entry : reduction.entrySet()) {
+                                addDeliverCommand(drone, delivery.to, entry.getKey(), entry.getValue());
+                            }
+
+                            drone.busy = 2 + distanceFromWareHouse + delivery.distance();
+                            break;
+                        }
+                    }
                 }
             }
         }
 
-        addLoadCommand(drones.get(0), warehouses.get(0), 163, 1);
-        addDeliverCommand(drones.get(0), orders.get(1), 163, 1);
+        writeFile(BUSY_DAY_OUT);
+    }
 
-        writeFile(MOTHER_OF_ALL_WAREHOUSES_OUT);
+    private static Map<Integer, Integer> reduce(List<Product> products) {
+        HashMap<Integer, Integer> map = new HashMap<>();
+        for (Product product : products) {
+            Integer count = map.get(product.type);
+            if (count == null) {
+                count = 0;
+            }
+            map.put(product.type, count + 1);
+        }
+        return map;
+    }
+
+    private static boolean canDispatch(Product product, WareHouse wareHouse) {
+        return wareHouse.products.contains(product);
+    }
+
+    private static Delivery closetDelivery(WareHouse wareHouse) {
+        for (Order order : wareHouse.ordersOrderedByDistance) {
+            if (!order.products.isEmpty()) {
+                // There are some products to take.
+                Delivery delivery = new Delivery();
+                delivery.from = wareHouse;
+                delivery.to = order;
+
+                Iterator<Product> iterator = order.products.iterator();
+                while (iterator.hasNext()) {
+                    Product next = iterator.next();
+                    if (next.weight < delivery.freeWeight() && canDispatch(next, wareHouse)) {
+                        // Remove from order
+                        iterator.remove();
+                        // Remove from warehouse
+                        wareHouse.products.remove(next);
+                        // add to delivery
+                        delivery.products.add(next);
+                    }
+                }
+
+                if (!delivery.products.isEmpty()) {
+                    return delivery;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static class Delivery {
+        WareHouse from;
+        Order to;
+        List<Product> products = new ArrayList<>();
+
+        int freeWeight() {
+            int weight = 0;
+            for (Product product : products) {
+                weight += product.weight;
+            }
+            return maxLoad - weight;
+        }
+
+        int distance() {
+            return distanceBetween(from.x, from.y, to.x, to.y);
+        }
     }
 
     private static void readFile(String name) {
@@ -213,6 +322,7 @@ public class Main {
     }
 
     private static class WareHouse {
+        List<Order> ordersOrderedByDistance = new ArrayList<>();
         List<Product> products = new ArrayList<>();
         int x, y;
         public int id;
@@ -257,7 +367,7 @@ public class Main {
             }
 
             for (Order order : orders) {
-                map[order.x * cols + order.y] =  'o';
+                map[order.x * cols + order.y] = 'o';
             }
 
             for (int r = 0; r < rows; r++) {
