@@ -42,7 +42,7 @@ public class Main {
     private static ArrayList<String> commands = new ArrayList<>();
 
     public static void main(String[] args) {
-        readFile(BUSY_DAY_IN);
+        readFile(MOTHER_OF_ALL_WAREHOUSES_IN);
 
         for (int i = 0; i < warehouseCount; i++) {
             final WareHouse wareHouse = warehouses.get(i);
@@ -93,7 +93,10 @@ public class Main {
                                 addDeliverCommand(drone, delivery.to, entry.getKey(), entry.getValue());
                             }
 
+                            // Update the drone.
                             drone.busy = 2 + distanceFromWareHouse + delivery.distance();
+                            drone.x = delivery.to.x;
+                            drone.y = delivery.to.y;
                             break;
                         }
                     }
@@ -101,7 +104,7 @@ public class Main {
             }
         }
 
-        writeFile(BUSY_DAY_OUT);
+        writeFile(MOTHER_OF_ALL_WAREHOUSES_OUT);
     }
 
     private static Map<Integer, Integer> reduce(List<Product> products) {
