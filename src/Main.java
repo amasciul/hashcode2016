@@ -2,6 +2,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Alexandre on 11/02/16.
@@ -37,5 +39,26 @@ public class Main {
         } catch (IOException e) {
             System.out.println("error writing file " + e.getMessage());
         }
+    }
+
+
+    private static class Product {
+        int weight;
+        int type;
+    }
+
+    private static class Order {
+        List<Product> products = new ArrayList<>();
+        int x, y;
+    }
+
+    private static class WareHouse {
+        List<Product> products;
+        int x, y;
+    }
+
+    private static class Drone {
+        List<Product> products;
+        int x, y;
     }
 }
