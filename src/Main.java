@@ -5,6 +5,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Math.*;
+
 public class Main {
     private static final String FILE_IN = "src/busy_day.in";
     private static final String FILE_IN2 = "src/redundancy.in";
@@ -159,5 +161,9 @@ public class Main {
             this.x = x;
             this.y = y;
         }
+    }
+
+    private static int distanceBetween(int xa, int ya, int xb, int yb) {
+        return (int) ceil(sqrt((pow(abs((double)(xa - xb)), 2) + pow(abs((double)(ya - yb)), 2))));
     }
 }
