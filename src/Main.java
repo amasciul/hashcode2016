@@ -26,6 +26,21 @@ public class Main {
 
     public static void main(String[] args) {
         readFile();
+
+        for (int i = 0; i < turns; i++) {
+            // One tick
+            for (int d = 0; d < dronesCount; d++) {
+                // drones number d
+                Drone drone = drones.get(d);
+                if (drone.busy > 0) {
+                    // This turn, this drone is busy~
+                    drone.busy--;
+                } else {
+                    // TODO find something for the drone.
+                }
+            }
+        }
+
         writeFile();
     }
 
@@ -138,7 +153,7 @@ public class Main {
 
     private static class Drone {
         List<Product> products = new ArrayList<>();
-        int x, y;
+        int x, y, busy;
 
         public Drone(int x, int y) {
             this.x = x;
