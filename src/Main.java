@@ -11,7 +11,9 @@ public class Main {
     private static final String FILE_IN = "src/busy_day.in";
     private static final String FILE_IN2 = "src/redundancy.in";
     private static final String FILE_IN3 = "src/mother_of_all_warehouses.in";
-    private static final String FILE_OUT = "src/test.out";
+    private static final String FILE_OUT = "src/output_1.out";
+    private static final String FILE_OUT2 = "src/output_2.out";
+    private static final String FILE_OUT3 = "src/output_3.out";
     private static int rows;
     private static int cols;
     private static int dronesCount;
@@ -27,7 +29,7 @@ public class Main {
     private static ArrayList<String> commands = new ArrayList<>();
 
     public static void main(String[] args) {
-        readFile();
+        readFile(FILE_IN);
 
         for (int i = 0; i < turns; i++) {
             // One tick
@@ -46,13 +48,13 @@ public class Main {
         addLoadCommand(drones.get(0), warehouses.get(0), 163, 1);
         addDeliverCommand(drones.get(0), orders.get(1), 163, 1);
 
-        writeFile();
+        writeFile(FILE_OUT);
     }
 
-    private static void readFile() {
+    private static void readFile(String name) {
         try {
 
-            BufferedReader br = new BufferedReader(new FileReader(FILE_IN));
+            BufferedReader br = new BufferedReader(new FileReader(name));
 
             String line;
 
@@ -148,9 +150,9 @@ public class Main {
         commands.add(stringBuilder.toString());
     }
 
-    private static void writeFile() {
+    private static void writeFile(String name) {
         try {
-            PrintWriter writer = new PrintWriter(FILE_OUT);
+            PrintWriter writer = new PrintWriter(name);
             writer.println(commands.size());
 
             for (String command : commands) {
@@ -171,6 +173,25 @@ public class Main {
         public Product(int type, int weigth) {
             this.weight = weigth;
             this.type = type;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Product product = (Product) o;
+
+            if (weight != product.weight) return false;
+            return type == product.type;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = weight;
+            result = 31 * result + type;
+            return result;
         }
     }
 
