@@ -3,17 +3,24 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.Math.*;
 
 public class Main {
-    private static final String FILE_IN = "src/busy_day.in";
-    private static final String FILE_IN2 = "src/redundancy.in";
-    private static final String FILE_IN3 = "src/mother_of_all_warehouses.in";
-    private static final String FILE_OUT = "src/output_1.out";
-    private static final String FILE_OUT2 = "src/output_2.out";
-    private static final String FILE_OUT3 = "src/output_3.out";
+    private static final String BUSY_DAY_IN = "src/busy_day.in";
+    private static final String BUSY_DAY_OUT = "src/busy_day.out";
+    private static final String BUSY_DAY_MAP = "src/busy_day.map";
+
+    private static final String REDUNDANCY_IN = "src/redundancy.in";
+    private static final String REDUNDANCY_OUT = "src/redundancy.out";
+    private static final String REDUNDANCY_MAP = "src/redundancy.map";
+
+    private static final String MOTHER_OF_ALL_WAREHOUSES_IN = "src/mother_of_all_warehouses.in";
+    private static final String MOTHER_OF_ALL_WAREHOUSES_OUT = "src/mother_of_all_warehouses.out";
+    private static final String MOTHER_OF_ALL_WAREHOUSES_MAP = "src/mother_of_all_warehouses.map";
+
     private static int rows;
     private static int cols;
     private static int dronesCount;
@@ -29,7 +36,7 @@ public class Main {
     private static ArrayList<String> commands = new ArrayList<>();
 
     public static void main(String[] args) {
-        readFile(FILE_IN);
+        readFile(MOTHER_OF_ALL_WAREHOUSES_IN);
 
         for (int i = 0; i < turns; i++) {
             // One tick
@@ -48,7 +55,7 @@ public class Main {
         addLoadCommand(drones.get(0), warehouses.get(0), 163, 1);
         addDeliverCommand(drones.get(0), orders.get(1), 163, 1);
 
-        writeFile(FILE_OUT);
+        writeFile(MOTHER_OF_ALL_WAREHOUSES_OUT);
     }
 
     private static void readFile(String name) {
@@ -227,6 +234,46 @@ public class Main {
     }
 
     private static int distanceBetween(int xa, int ya, int xb, int yb) {
-        return (int) ceil(sqrt((pow(abs((double)(xa - xb)), 2) + pow(abs((double)(ya - yb)), 2))));
+        return (int) ceil(sqrt((pow(abs((double) (xa - xb)), 2) + pow(abs((double) (ya - yb)), 2))));
     }
+
+
+    // **************************************************
+    // **************************************************
+    // **************************************************
+    //                  MAP STUFF
+    // **************************************************
+    // **************************************************
+    // **************************************************
+    private static void generateMap(String mapName) {
+        try {
+            PrintWriter writer = new PrintWriter(mapName);
+
+            final char[] map = new char[rows * cols];
+            Arrays.fill(map, '.');
+
+            for (WareHouse warehouse : warehouses) {
+                map[warehouse.x * cols + warehouse.y] = 'w';
+            }
+
+            for (Order order : orders) {
+                map[order.x * cols + order.y] =  'o';
+            }
+
+            for (int r = 0; r < rows; r++) {
+                final StringBuilder stringBuilder = new StringBuilder();
+                for (int c = 0; c < cols; c++) {
+                    stringBuilder.append(map[r * cols + c]);
+                }
+                stringBuilder.append('\n');
+                writer.println(stringBuilder.toString());
+            }
+
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("error writing file " + e.getMessage());
+        }
+    }
+
+
 }
