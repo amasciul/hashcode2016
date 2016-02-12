@@ -9,10 +9,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 
-import static java.lang.Math.*;
+import static java.lang.Math.abs;
+import static java.lang.Math.ceil;
+import static java.lang.Math.pow;
+import static java.lang.Math.sqrt;
 
 public class Main {
     private static final String BUSY_DAY_IN = "src/busy_day.in";
@@ -26,6 +28,8 @@ public class Main {
     private static final String MOTHER_OF_ALL_WAREHOUSES_IN = "src/mother_of_all_warehouses.in";
     private static final String MOTHER_OF_ALL_WAREHOUSES_OUT = "src/mother_of_all_warehouses.out";
     private static final String MOTHER_OF_ALL_WAREHOUSES_MAP = "src/mother_of_all_warehouses.map";
+
+    private static final int DISTANCE_CLOSE = 10;
 
     private static int rows;
     private static int cols;
@@ -58,6 +62,22 @@ public class Main {
             });
         }
 
+        for (int i = 0; i < orderCount; i++) {
+            final Order order = orders.get(i);
+
+            for (int j = 0; j < orderCount; j++) {
+                if (i == j) {
+                    continue;
+                }
+
+                final Order candidate = orders.get(j);
+                final int distanceBetweenOrder = distanceBetween(order.x, order.y, candidate.x, candidate.y);
+                if (distanceBetweenOrder <= DISTANCE_CLOSE) {
+                    order.closeOrders.add(candidate);
+                }
+            }
+        }
+
         for (int i = 0; i < turns; i++) {
             // One tick
             System.out.println("tick " + i);
@@ -83,20 +103,44 @@ public class Main {
                         final Delivery delivery = closetDelivery(wareHouse);
                         if (delivery != null) {
                             // hurray we got our job !
-                            int distanceFromWareHouse = distanceBetween(drone.x, drone.y, wareHouse.x, wareHouse.y);
-                            Map<Integer, Integer> reduction = reduce(delivery.products);
-                            for (Map.Entry<Integer, Integer> entry : reduction.entrySet()) {
-                                addLoadCommand(drone, delivery.from, entry.getKey(), entry.getValue());
+
+                            // Compute the delivery distance and the number of stop
+                            int deliveryDistance = distanceBetween(drone.x, drone.y, wareHouse.x, wareHouse.y);
+                            int numberOfStop = 1;
+                            DeliveryStop stop = delivery.stop;
+                            while (stop.next != null) {
+                                deliveryDistance += distanceBetween(stop.order.x, stop.order.y, stop.next.order.x, stop.next.order.y);
+                                numberOfStop++;
+                                stop = stop.next;
+                            }
+                            final DeliveryStop lastStop = stop;
+
+                            // Add the load commands
+                            stop = delivery.stop;
+                            while (stop != null) {
+                                Map<Integer, Integer> reduction = reduce(stop.products);
+                                for (Map.Entry<Integer, Integer> entry : reduction.entrySet()) {
+                                    addLoadCommand(drone, delivery.warehouse, entry.getKey(), entry.getValue());
+                                }
+
+                                stop = stop.next;
                             }
 
-                            for (Map.Entry<Integer, Integer> entry : reduction.entrySet()) {
-                                addDeliverCommand(drone, delivery.to, entry.getKey(), entry.getValue());
+                            // Add the deliver commands
+                            stop = delivery.stop;
+                            while (stop != null) {
+                                Map<Integer, Integer> reduction = reduce(stop.products);
+                                for (Map.Entry<Integer, Integer> entry : reduction.entrySet()) {
+                                    addDeliverCommand(drone, stop.order, entry.getKey(), entry.getValue());
+                                }
+
+                                stop = stop.next;
                             }
 
                             // Update the drone.
-                            drone.busy = 2 + distanceFromWareHouse + delivery.distance();
-                            drone.x = delivery.to.x;
-                            drone.y = delivery.to.y;
+                            drone.busy = 1 + numberOfStop + deliveryDistance;
+                            drone.x = lastStop.order.x;
+                            drone.y = lastStop.order.y;
                             break;
                         }
                     }
@@ -124,49 +168,101 @@ public class Main {
     }
 
     private static Delivery closetDelivery(WareHouse wareHouse) {
+        Delivery delivery = new Delivery();
+        delivery.warehouse = wareHouse;
+        delivery.stop = new DeliveryStop();
+
         for (Order order : wareHouse.ordersOrderedByDistance) {
             if (!order.products.isEmpty()) {
                 // There are some products to take.
-                Delivery delivery = new Delivery();
-                delivery.from = wareHouse;
-                delivery.to = order;
-
                 Iterator<Product> iterator = order.products.iterator();
                 while (iterator.hasNext()) {
                     Product next = iterator.next();
                     if (next.weight < delivery.freeWeight() && canDispatch(next, wareHouse)) {
+                        // A product can be dispatch for this order
+                        if (delivery.stop.order == null) {
+                            // current stop is not associated with any order
+                            delivery.stop.order = order;
+                        }
+
                         // Remove from order
                         iterator.remove();
                         // Remove from warehouse
                         wareHouse.products.remove(next);
                         // add to delivery
-                        delivery.products.add(next);
+                        delivery.stop.products.add(next);
                     }
                 }
 
-                if (!delivery.products.isEmpty()) {
-                    return delivery;
+                if (delivery.stop.order != null) {
+                    // The current stop order is filled !
+                    break;
                 }
             }
         }
-        return null;
+
+        if (delivery.stop.order == null) {
+            return null;
+        }
+
+        if (delivery.freeWeight() != 0) {
+            // There are some free weight !
+            // Let's look around the current stop if we can find
+            // A close order we can deliver.
+            for (Order closeOrder : delivery.stop.order.closeOrders) {
+                Iterator<Product> iterator = closeOrder.products.iterator();
+                DeliveryStop deliveryStop = new DeliveryStop();
+                deliveryStop.order = closeOrder;
+                delivery.stop.next = deliveryStop;
+                while (iterator.hasNext()) {
+                    Product next = iterator.next();
+                    if (next.weight < delivery.freeWeight()
+                            && canDispatch(next, wareHouse)) {
+
+                        // Remove from order
+                        iterator.remove();
+                        // Remove from warehouse
+                        wareHouse.products.remove(next);
+                        // add to delivery
+                        deliveryStop.products.add(next);
+                    }
+                }
+
+                if (!deliveryStop.products.isEmpty()) {
+                    break;
+                } else {
+                    delivery.stop.next = null;
+                }
+            }
+
+        }
+
+        return delivery;
     }
 
-    private static class Delivery {
-        WareHouse from;
-        Order to;
+    private static class DeliveryStop {
+        DeliveryStop next;
+        Order order;
         List<Product> products = new ArrayList<>();
 
-        int freeWeight() {
-            int weight = 0;
+        int weight() {
+            int weight = next == null ? 0 : next.weight();
+
             for (Product product : products) {
                 weight += product.weight;
             }
-            return maxLoad - weight;
-        }
 
-        int distance() {
-            return distanceBetween(from.x, from.y, to.x, to.y);
+            return weight;
+        }
+    }
+
+    private static class Delivery {
+        WareHouse warehouse;
+        DeliveryStop stop;
+
+        int freeWeight() {
+            int weight = stop == null ? 0 : stop.weight();
+            return maxLoad - weight;
         }
     }
 
@@ -315,6 +411,7 @@ public class Main {
     }
 
     private static class Order {
+        List<Order> closeOrders = new ArrayList<>();
         List<Product> products = new ArrayList<>();
         int x, y;
         public int id;
